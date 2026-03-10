@@ -232,10 +232,12 @@ interface RefreshResponse {
 
 export const authAPI = {
   async login(email: string, password: string): Promise<LoginResponse> {
+    // Disable retry on 401 - login failures should show the real error,
+    // not trigger token refresh (which can't work before authentication)
     const data = await fetchAPI<LoginResponse>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password } as LoginRequest),
-    })
+    }, false)
     setAuthToken(data.access_token)
     return data
   },

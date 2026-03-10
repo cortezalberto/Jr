@@ -164,72 +164,7 @@ deleteDialog.isOpen       // Boolean state
 deleteDialog.item         // Current item to delete
 ```
 
-#### Migration Status (9/11 simple CRUD pages refactored)
-
-| Page | Sprint | Status | Lines Saved |
-|------|--------|--------|-------------|
-| Allergens | 11 | ✅ Complete | ~40 |
-| Categories | 11 | ✅ Complete | ~40 |
-| Subcategories | 11 | ✅ Complete | ~40 |
-| Branches | 12 | ✅ Complete | ~40 |
-| Badges | 12 | ✅ Complete | ~40 |
-| Seals | 13 | ✅ Complete | ~45 |
-| PromotionTypes | 13 | ✅ Complete | ~40 |
-| Roles | 14 | ✅ Complete | ~40 |
-| Staff | 14 | ✅ Complete | ~45 |
-| Products | - | ⏳ Not yet (complex page) | - |
-| Promotions | - | ⏳ Not yet (complex page) | - |
-| Tables | - | N/A (different pattern) | - |
-| Settings | - | N/A (no modal pattern) | - |
-| Restaurant | - | N/A (no modal pattern) | - |
-
-**Total:** ~370 lines eliminated, 27 useState declarations removed
-
-#### 4-Step Refactoring Pattern (Proven across 9 pages)
-
-When refactoring CRUD pages to use custom hooks:
-
-1. **Update imports:**
-   ```typescript
-   import { useFormModal, useConfirmDialog } from '../hooks'
-   ```
-
-2. **Replace useState with hooks:**
-   ```typescript
-   // Remove these 3 lines:
-   // const [isModalOpen, setIsModalOpen] = useState(false)
-   // const [editingItem, setEditingItem] = useState<Item | null>(null)
-   // const [formData, setFormData] = useState<FormData>({ ... })
-
-   // Add this 1 line:
-   const modal = useFormModal<FormData>({ ...initialFormData })
-
-   // And for delete:
-   const deleteDialog = useConfirmDialog<Item>()
-   ```
-
-3. **Simplify modal handlers:**
-   ```typescript
-   // openCreateModal: modal.openCreate({ ...data })
-   // openEditModal: modal.openEdit(item, { ...data })
-   // closeModal: modal.close()
-   ```
-
-4. **Update JSX references:**
-   ```typescript
-   // isModalOpen → modal.isOpen
-   // editingItem → modal.selectedItem
-   // formData → modal.formData
-   // setFormData → modal.setFormData
-   ```
-
-**Common pitfall:** When using `replace_all` for formData, the submitAction parameter name also gets changed. Always manually restore it to `formData` after using replace_all.
-
-#### Code Splitting Achievement
-
-Custom hooks are automatically code-split into separate chunks:
-- `useFormModal-*.js`: 0.77 kB (0.48 kB gzipped)
-- `useConfirmDialog-*.js`: 0.49 kB (0.33 kB gzipped)
+**Migration status:** 9/11 simple CRUD pages use `useFormModal`/`useConfirmDialog`. Not yet migrated: Products, Promotions (complex pages). Tables/Settings/Restaurant use different patterns.
 
 ### React 19 Form Pattern with useActionState
 
@@ -1020,38 +955,7 @@ parseInt(e.target.value, 10) || 0
 
 ## Current State
 
-### Implementation Status
-- ✅ Backend integration complete - all stores fetch from REST API
-- ✅ 16 Zustand stores with localStorage persistence
-- ✅ 19 pages (16 functional, 3 placeholders: Orders, Statistics)
-- ✅ Complete table workflow system (5 states)
-- ✅ Cascade delete service with dependency injection
-- ✅ Branch-specific pricing system
-- ✅ Promotions with temporal scheduling
-- ✅ Staff and roles management
-- ✅ PWA with offline support
-- ✅ 100 automated tests (Vitest + @testing-library/react)
-- ✅ React 19 with automatic memoization (React Compiler)
-- ✅ Custom hooks pattern (9/11 simple CRUD pages migrated)
-- ✅ API service layer in `src/services/api.ts`
-
-### React 19 Modernization (14 Sprints Complete)
-1. ✅ Forms migrated to useActionState
-2. ✅ Components modernized with ref as prop
-3. ✅ React Compiler enabled (automatic memoization)
-4. ✅ Performance monitoring tools
-5. ✅ PWA implementation
-6. ✅ Production readiness (SEO, security)
-7. ✅ Test infrastructure, accessibility
-8. ✅ Custom hooks for reusability (useFormModal, useConfirmDialog)
-9. ✅ Optimistic mutations, shared utilities
-10. ✅ Comprehensive testing, performance optimization (94 tests)
-11. ✅ Simple CRUD pages refactored (Allergens, Categories, Subcategories)
-12. ✅ Simple CRUD pages refactored (Branches, Badges)
-13. ✅ Simple CRUD pages refactored (Seals, PromotionTypes)
-14. ✅ Final simple CRUD pages (Roles, Staff)
-
-**See REACT_19_MODERNIZATION.md for detailed sprint documentation.**
+**16 functional pages**, 3 placeholders (Orders, Statistics). 16 Zustand stores. 100 automated tests. All stores fetch from backend REST API.
 
 ### Predefined System Data
 - 12 allergens (Gluten, Lacteos, Huevos, Pescado, Mariscos, Frutos Secos, Soja, Apio, Mostaza, Sesamo, Sulfitos, Altramuces)
