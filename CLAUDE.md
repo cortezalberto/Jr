@@ -24,6 +24,7 @@ cd pwaWaiter && npm install && npm run dev    # Port 5178
 cd Dashboard && npm test -- src/stores/branchStore.test.ts  # Single file (watch mode)
 cd Dashboard && npm run test:coverage                        # Coverage report
 cd pwaMenu && npm run test:run                               # Single run (no watch)
+cd pwaMenu && npm test                                       # Watch mode
 cd pwaWaiter && npm run test:run                             # Single run (no watch)
 cd backend && python -m pytest tests/test_auth.py -v         # Backend single file
 cd backend && python -m pytest tests/ -v                     # Backend all tests
@@ -48,7 +49,7 @@ python -m uvicorn ws_gateway.main:app --reload --port 8001
 
 **First-time setup:** Copy `.env.example` to `.env` in `backend/`, `Dashboard/`, `pwaMenu/`, `pwaWaiter/`.
 
-**Test Users:** `admin@demo.com` / `admin123` (ADMIN), `waiter@demo.com` / `waiter123` (WAITER), `kitchen@demo.com` / `kitchen123` (KITCHEN)
+**Test Users:** `admin@demo.com` / `admin123` (ADMIN), `waiter@demo.com` / `waiter123` (WAITER), `kitchen@demo.com` / `kitchen123` (KITCHEN), `ana@demo.com` / `ana123` (WAITER), `alberto.cortez@demo.com` / `waiter123` (WAITER)
 
 **Key Ports:** REST API `:8000` | WebSocket `:8001` | Redis `:6380` | PostgreSQL `:5432` | pgAdmin `:5050`
 
@@ -147,6 +148,12 @@ class MyEntityService(BranchScopedService[MyEntity, MyEntityOutput]):
 /api/recipes/*                             # Recipe CRUD (JWT + KITCHEN/MANAGER/ADMIN)
 /api/billing/*                             # Payment operations
 /api/waiter/*                              # Waiter operations (JWT + WAITER role)
+/api/waiter/tables/{id}/activate           # Waiter-managed table activation (create session)
+/api/waiter/sessions/{id}/rounds           # Waiter submits round for phoneless customers
+/api/waiter/sessions/{id}/check            # Waiter requests check
+/api/waiter/payments/manual                # Register cash/card/transfer payment
+/api/waiter/tables/{id}/close              # Close table after payment
+/api/waiter/branches/{id}/menu             # Compact menu for comanda rápida (no images)
 /api/admin/*                               # Dashboard CRUD (JWT + role-based, supports ?limit=&offset=)
 ```
 
@@ -426,7 +433,8 @@ The ws_gateway (`ws_gateway/` at project root) uses composition and design patte
 - Both old (`from ws_gateway.components import X`) and new (`from ws_gateway.components.broadcast.router import X`) import paths work
 - Authentication via Strategy pattern: `JWTAuthStrategy` for staff, `TableTokenAuthStrategy` for diners
 - Sharded locks per branch for high concurrency (400+ users)
-- Broadcast batching (50 connections per batch via `asyncio.gather`)
+- Worker pool broadcast (10 parallel workers, ~160ms for 400 users) with legacy batch fallback (50 per batch)
+- Redis Streams consumer for critical events (at-least-once delivery, DLQ for failed messages)
 
 See `ws_gateway/README.md` and `ws_gateway/arquiws_gateway.md` for architecture details.
 
@@ -492,4 +500,4 @@ This project uses IA-Native governance with Policy Tickets. Before modifying any
 - **MEDIO** (Orders, Kitchen, Waiter, Tables, Customer): Implement with checkpoints
 - **BAJO** (Categories, Sectors, Recipes, Ingredients, Promotions): Full autonomy if tests pass
 
-User stories with technical specs: [agile/historias/historias_usuario.md](agile/historias/historias_usuario.md)
+User story backlog with implementation plan: [proyehisto1.md](proyehisto1.md)

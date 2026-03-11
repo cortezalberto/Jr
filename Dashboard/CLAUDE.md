@@ -828,185 +828,19 @@ export interface Options<T, TData = any> { ... }
 export interface Options<T, TData = unknown> { ... }
 ```
 
-## Backend-Only Data Model
+## Backend Integration
 
-All entity stores (branches, categories, subcategories, products, tables, staff, promotions) start with empty arrays and fetch data from the backend API. Mock data has been removed.
+All entity stores start with empty arrays and fetch from backend API. System data (Roles, Allergens, Badges, Seals, PromotionTypes) is predefined.
 
-**System data** (Roles, Allergens, Badges, Seals, PromotionTypes) is always included as predefined data required for app functionality.
+**Store Versions:** BRANCHES=5, CATEGORIES=4, SUBCATEGORIES=4, PRODUCTS=6, ALLERGENS=2, BADGES=1, SEALS=1, ROLES=1, STAFF=3, PROMOTIONS=4, PROMOTION_TYPES=2, TABLES=7, ORDER_HISTORY=1
 
-### Store Migration Pattern
+**16 functional pages**, 3 placeholders (Orders, Statistics). 16 Zustand stores. 100 automated tests.
 
-When localStorage contains old mock data, migrations filter it out:
-```typescript
-// Version 5: Clear mock data, data comes from backend
-if (version < 5) {
-  branches = branches.filter(b => !b.id.startsWith('branch-'))
-}
-```
+## Dashboard-Specific Security
 
-Mock ID patterns filtered by migrations:
-- Branches: `branch-*`
-- Categories: `b1-*`, `b2-*`, `b3-*`, `b4-*`
-- Subcategories: `sub-*`, `b2-sub-*`, `b3-sub-*`, `b4-sub-*`
-- Products: numeric-only IDs, `b2-prod-*`, `b3-prod-*`, `b4-prod-*`
-- Tables: `table-*`
-- Staff: entries with `branch_id` starting with `branch-`
-- Promotions: `promo-*`
+- **File imports** (`Settings.tsx`): Max 5MB, `.json` only, deep structure validation before importing
+- **Input sanitization** (`utils/sanitization.ts`): `sanitizeImageUrl`, `sanitizeHtml`, `isSafeFilename`, `stripDangerousChars`
+- **Validation** (`utils/validation.ts`): Centralized validators with `VALIDATION_LIMITS` constants. Use `isValidNumber`, `isPositiveNumber` helpers. Always `parseInt(value, 10)` with radix.
+- **Error messages**: `handleError()` in `logger.ts` maps internal errors to safe Spanish messages
 
-## Security Patterns
-
-### File Import Security
-`Settings.tsx` validates imported JSON files:
-```typescript
-// Maximum file size (5MB) to prevent DoS
-const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024
-
-// Validate file type and size before processing
-if (file.size > MAX_IMPORT_FILE_SIZE) {
-  toast.error('Archivo muy grande. El tamaño máximo es 5MB.')
-  return
-}
-if (!file.name.endsWith('.json')) {
-  toast.error('Solo se permiten archivos .json')
-  return
-}
-
-// Deep structure validation before importing
-const validateImportData = (data: unknown) => {
-  // Validates restaurant has name/slug
-  // Validates categories have id/name/branch_id
-  // Validates subcategories have id/name/category_id
-  // Validates products have id/name/category_id
-}
-```
-
-### Input Sanitization
-Use utilities from `src/utils/sanitization.ts` for all user inputs:
-```typescript
-import {
-  sanitizeImageUrl,
-  sanitizeHtml,
-  isSafeFilename,
-  stripDangerousChars
-} from '../utils/sanitization'
-
-// ✓ Image URLs - Only http/https protocols, blocks XSS
-const imageUrl = sanitizeImageUrl(userInput, '/placeholder.jpg')
-
-// ✓ HTML content - Escapes special characters
-const safeText = sanitizeHtml('<script>alert(1)</script>')
-// Returns: '&lt;script&gt;alert(1)&lt;/script&gt;'
-
-// ✓ Filenames - Prevents path traversal
-if (!isSafeFilename(filename)) {
-  toast.error('Nombre de archivo no válido')
-  return
-}
-
-// ✓ General text - Strips dangerous characters
-const cleanInput = stripDangerousChars(userInput)
-```
-
-**Security Rules:**
-- Never render user input without sanitization
-- Always validate URLs before using in `<img>` src
-- Block `javascript:`, `data:`, `file:`, and other non-http protocols
-- Check filenames for `..`, `/`, `\`, and null bytes
-
-### Validation Consistency
-All validators in `validation.ts` use:
-- `MIN_NAME_LENGTH = 2`, `MAX_NAME_LENGTH = 100` for name fields
-- `MAX_DESCRIPTION_LENGTH = 500`, `MAX_ADDRESS_LENGTH = 200` for text fields
-- `isValidPhone()` for phone validation (accepts formats like +54 11 1234-5678)
-- Local timezone helpers (`getLocalDateString`, `getLocalTimeString`) for date/time comparisons
-- Trimmed input before validation
-- Prices must be > 0 and finite (`Number.isFinite()` check)
-- Order fields have max limit of 9999
-
-### Number Input Handling
-Always use safe parsing for number inputs to handle edge cases:
-```typescript
-// WRONG: parseFloat can return incorrect values
-onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
-
-// CORRECT: Handle empty strings and validate
-onChange={(e) => {
-  const value = e.target.value.trim()
-  const parsed = value === '' ? 0 : Number(value)
-  setPrice(isNaN(parsed) ? 0 : Math.max(0, parsed))
-}}
-
-// For parseInt, always specify radix 10
-parseInt(e.target.value, 10) || 0
-```
-
-### Error Message Security
-`handleError()` in `logger.ts` returns user-friendly messages that don't expose internal details:
-```typescript
-// Internal: "TypeError: Cannot read property 'x' of undefined"
-// User sees: "Ocurrió un error. Intenta nuevamente."
-
-// Errors are classified and mapped to safe messages:
-// - network errors → "Error de conexión. Verifica tu internet."
-// - validation errors → "Los datos ingresados no son válidos."
-// - 404 errors → "El recurso solicitado no existe."
-// - auth errors → "No tienes permisos para esta acción."
-```
-
-## Current State
-
-**16 functional pages**, 3 placeholders (Orders, Statistics). 16 Zustand stores. 100 automated tests. All stores fetch from backend REST API.
-
-### Predefined System Data
-- 12 allergens (Gluten, Lacteos, Huevos, Pescado, Mariscos, Frutos Secos, Soja, Apio, Mostaza, Sesamo, Sulfitos, Altramuces)
-- 4 badges (Nuevo, Popular, Recomendado, Especial del Chef)
-- 6 seals (Vegano, Vegetariano, Sin Gluten, Orgánico, Sin Lactosa, Bajo en Sodio)
-- 4 roles (Cocinero, Mozo, Administrativo, Gerente)
-- 4 promotion types (Happy Hour, Combo Familiar, 2x1, Descuento)
-
-### Store Versions
-BRANCHES=5, CATEGORIES=4, SUBCATEGORIES=4, PRODUCTS=6, ALLERGENS=2, BADGES=1, SEALS=1, ROLES=1, STAFF=3, PROMOTIONS=4, PROMOTION_TYPES=2, TABLES=7, ORDER_HISTORY=1
-
-### Utilities
-- `crypto.randomUUID()` for ID generation
-- ErrorBoundary wraps entire app
-- Centralized logging via `logger.ts`
-- Centralized validation via `validation.ts`
-- Input sanitization via `sanitization.ts`
-
-## Code Quality Standards
-
-### TypeScript Strict Mode
-- Always use `unknown` instead of `any` for unknown types
-- Use type guards to validate structure before casting
-- Never bypass strict type checking with `as any`
-- Properly type all function parameters and return values
-
-### Performance Optimization
-- Use `useShallow` from zustand/react/shallow for filtered array selectors
-- Extract selectors to constants for reusability
-- Memoize expensive computations with `useMemo`
-- Use `useCallback` for event handlers to prevent unnecessary re-renders
-- React Compiler automatically memoizes components (babel-plugin-react-compiler)
-- Manual React.memo for frequently re-rendered components:
-  - **Card** (100+ usages) - ~30% fewer re-renders
-  - **CardHeader** (20+ usages)
-  - **Badge** (100+ usages) - ~35% fewer re-renders
-  - **Table** (20+ usages) - ~35% fewer re-renders
-  - **Modal** (16+ usages) - ~40% fewer re-renders
-- Code splitting: Custom hooks split into separate chunks for optimal loading
-- Build size: ~246 kB total (77.6 kB gzipped)
-- PWA caching: Workbox precache + runtime caching for fonts
-
-### Security Best Practices
-- Sanitize all user inputs before use (URLs, filenames, HTML)
-- Use centralized logging (never direct console.*)
-- Validate file uploads (type, size, structure)
-- Return user-friendly error messages (never expose internals)
-
-### Accessibility Requirements
-- All interactive elements must have accessible labels
-- Use semantic HTML (`<button>` not `<div onClick>`)
-- Provide `sr-only` text for screen readers
-- Include `aria-label`, `aria-describedby`, and `role` attributes
-- Maintain keyboard navigation support
+See root `CLAUDE.md` for shared patterns (Zustand selectors, logging, type conversions, security).
