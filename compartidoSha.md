@@ -122,7 +122,7 @@ Las variantes síncronas de todas estas funciones identificadas por el sufijo _s
 
 El módulo rate_limit.py con aproximadamente trescientas sesenta y seis líneas de código implementa protección multicapa contra abuso combinando la librería slowapi para endpoints REST estándar con lógica personalizada basada en Redis para casos especiales que requieren mayor control, particularmente el endpoint de login que es objetivo frecuente de ataques de fuerza bruta.
 
-Slowapi proporciona rate limiting por dirección IP para la mayoría de endpoints utilizando sliding window algorithm para distribución uniforme de requests permitidos. La configuración permite especificar límites como diez requests por minuto o cien requests por hora, con headers estándar que informan al cliente cuántos requests le quedan y cuándo se resetea su ventana.
+Slowapi proporciona rate limiting por dirección IP para la mayoría de endpoints utilizando sliding window algorithm para distribución uniforme de requests permitidos. La configuración permite especificar límites como diez requests por minuo o cien requetsts por hora, con headers estándar que informan al cliente cuántos requests le quedan y cuándo se resetea su ventana.
 
 El rate limiting por email utiliza lógica Redis personalizada para el endpoint de login donde limitar por IP no es suficiente ya que atacantes pueden rotar IPs pero usualmente atacan un email específico. El límite configurado mediante LOGIN_RATE_LIMIT permite cinco intentos por defecto, con una ventana de tiempo de sesenta segundos configurada en LOGIN_RATE_WINDOW. Estos valores son configurables mediante settings permitiendo ajuste según las necesidades operativas.
 
