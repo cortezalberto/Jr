@@ -53,7 +53,7 @@ python -m uvicorn ws_gateway.main:app --reload --port 8001
 
 **Key Ports:** REST API `:8000` | WebSocket `:8001` | Redis `:6380` | PostgreSQL `:5432` | pgAdmin `:5050`
 
-**Stack:** React 19.2 | Vite 7.2 | TypeScript 5.9 | Vitest 4.0 | FastAPI 0.115 | SQLAlchemy 2.0 | `babel-plugin-react-compiler` (all frontends)
+**Stack:** React 19.2 | Vite 7.2 | TypeScript 5.9 | Vitest 4.0 (pwaWaiter: 3.2) | FastAPI 0.115 | SQLAlchemy 2.0 | `babel-plugin-react-compiler` (all frontends)
 
 ---
 
@@ -69,7 +69,7 @@ python -m uvicorn ws_gateway.main:app --reload --port 8001
 | **backend** | 8000 | FastAPI REST API (PostgreSQL, Redis, JWT) |
 | **ws_gateway** | 8001 | WebSocket Gateway for real-time events (at project root) |
 
-Each sub-project has its own `CLAUDE.md` and `README.md` with detailed sub-project patterns.
+Frontend sub-projects (`Dashboard/`, `pwaMenu/`, `pwaWaiter/`) each have their own `CLAUDE.md` with sub-project-specific patterns (hooks, store architecture, UI workflows). Backend and ws_gateway patterns are documented here and in their respective `README.md` files.
 
 ---
 
@@ -115,7 +115,8 @@ def list_categories(db: Session = Depends(get_db), user: dict = Depends(current_
     return service.list_by_branch(ctx.tenant_id, branch_id)
 
 # Available services: CategoryService, SubcategoryService, BranchService,
-# SectorService, TableService, ProductService, AllergenService, StaffService, PromotionService
+# SectorService, TableService, ProductService, AllergenService, StaffService, PromotionService,
+# RoundService, BillingService, DinerService, ServiceCallService, TicketService
 # Base classes: BaseCRUDService[Model, Output], BranchScopedService[Model, Output]
 ```
 
@@ -493,11 +494,58 @@ from ws_gateway.core.connection import ConnectionLifecycle, ConnectionBroadcaste
 
 ## Governance
 
-This project uses IA-Native governance with Policy Tickets. Before modifying any domain, check [agile/politicas.md](agile/politicas.md) for the corresponding autonomy level:
+This project uses IA-Native governance with Policy Tickets. Before modifying any domain, check the corresponding autonomy level:
 
 - **CRITICO** (Auth, Billing, Allergens, Staff): Analysis only, no production code changes
 - **ALTO** (Products, WebSocket, Rate Limiting): Propose changes, wait for human review
 - **MEDIO** (Orders, Kitchen, Waiter, Tables, Customer): Implement with checkpoints
 - **BAJO** (Categories, Sectors, Recipes, Ingredients, Promotions): Full autonomy if tests pass
 
-User story backlog with implementation plan: [proyehisto1.md](proyehisto1.md)
+Complete user story backlog: [proyehisto0.md](proyehisto0.md) | Gap-focused backlog: [proyehisto1.md](proyehisto1.md) | Implementation prompts: [prompt00.md](prompt00.md)
+
+
+# AI-DLC and Spec-Driven Development
+
+Kiro-style Spec Driven Development implementation on AI-DLC (AI Development Life Cycle)
+
+## Project Context
+
+### Paths
+- Steering: `.kiro/steering/`
+- Specs: `.kiro/specs/`
+
+### Steering vs Specification
+
+**Steering** (`.kiro/steering/`) - Guide AI with project-wide rules and context
+**Specs** (`.kiro/specs/`) - Formalize development process for individual features
+
+### Active Specifications
+- Check `.kiro/specs/` for active specifications
+- Use `/kiro:spec-status [feature-name]` to check progress
+
+## Development Guidelines
+- Think in English, generate responses in English. All Markdown content written to project files (e.g., requirements.md, design.md, tasks.md, research.md, validation reports) MUST be written in the target language configured for this specification (see spec.json.language).
+
+## Minimal Workflow
+- Phase 0 (optional): `/kiro:steering`, `/kiro:steering-custom`
+- Phase 1 (Specification):
+  - `/kiro:spec-init "description"`
+  - `/kiro:spec-requirements {feature}`
+  - `/kiro:validate-gap {feature}` (optional: for existing codebase)
+  - `/kiro:spec-design {feature} [-y]`
+  - `/kiro:validate-design {feature}` (optional: design review)
+  - `/kiro:spec-tasks {feature} [-y]`
+- Phase 2 (Implementation): `/kiro:spec-impl {feature} [tasks]`
+  - `/kiro:validate-impl {feature}` (optional: after implementation)
+- Progress check: `/kiro:spec-status {feature}` (use anytime)
+
+## Development Rules
+- 3-phase approval workflow: Requirements → Design → Tasks → Implementation
+- Human review required each phase; use `-y` only for intentional fast-track
+- Keep steering current and verify alignment with `/kiro:spec-status`
+- Follow the user's instructions precisely, and within that scope act autonomously: gather the necessary context and complete the requested work end-to-end in this run, asking questions only when essential information is missing or the instructions are critically ambiguous.
+
+## Steering Configuration
+- Load entire `.kiro/steering/` as project memory
+- Default files: `product.md`, `tech.md`, `structure.md`
+- Custom files are supported (managed via `/kiro:steering-custom`)
